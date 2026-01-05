@@ -13,3 +13,6 @@
     </listeners>
 </suite>
 
+<!-- Excluded debug tests - these are for troubleshooting only -->
+<!-- DebugPageStructureTest, DebugDatesPageTest, SimplifiedTravelInsuranceTest -->
+

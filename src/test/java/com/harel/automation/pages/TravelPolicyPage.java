@@ -16,8 +16,9 @@ public class TravelPolicyPage {
     
     // Locators - using multiple strategies to ensure compatibility
     private By firstTimePurchaseButton = By.xpath("//*[contains(text(), 'לרכישה בפעם הראשונה') or contains(text(), 'First time purchase')]");
-    private By continentSelection = By.xpath("//button[contains(@class, 'continent') or contains(@class, 'destination')]");
-    private By continueToTravelDatesButton = By.xpath("//*[contains(text(), 'הלאה לבחירת תאריכי') or contains(text(), 'Continue')]");
+    // Continents are displayed as MuiGrid items after clicking first time purchase
+    private By continentSelectionGrid = By.xpath("//div[contains(@class, 'MuiGrid-item') and contains(@class, 'MuiGrid-grid-xs-6')]");
+    private By continueToTravelDatesButton = By.xpath("//button[contains(@class, 'MuiButton')]");
     
     public TravelPolicyPage(WebDriver driver, WebDriverWait wait) {
         this.driver = driver;
@@ -44,17 +45,32 @@ public class TravelPolicyPage {
      */
     public void selectContinent() {
         try {
-            // Wait for continent options to be visible
-            wait.until(ExpectedConditions.presenceOfElementLocated(continentSelection));
-            Thread.sleep(500);
-            
-            // Find all continent buttons and click the first visible one
-            WebElement continentButton = wait.until(ExpectedConditions.elementToBeClickable(continentSelection));
-            continentButton.click();
+            // Wait for continent grid items to be visible
+            wait.until(ExpectedConditions.presenceOfElementLocated(continentSelectionGrid));
             Thread.sleep(1000);
+            
+            // Find all continent grid items and click the first visible one
+            java.util.List<WebElement> continentOptions = driver.findElements(continentSelectionGrid);
+            System.out.println("Found " + continentOptions.size() + " continent options");
+            
+            // Click the first visible continent
+            for (WebElement continent : continentOptions) {
+                if (continent.isDisplayed()) {
+                    String continentText = continent.getText();
+                    System.out.println("Clicking continent: " + continentText);
+                    continent.click();
+                    Thread.sleep(1000);
+                    return;
+                }
+            }
+            
+            // If no continent found, throw exception
+            throw new RuntimeException("No visible continent options found");
+            
         } catch (Exception e) {
             System.err.println("Error selecting continent: " + e.getMessage());
-            tryAlternativeClick(continentSelection);
+            e.printStackTrace();
+            tryAlternativeClick(continentSelectionGrid);
         }
     }
     
@@ -63,11 +79,41 @@ public class TravelPolicyPage {
      */
     public void clickContinueToTravelDates() {
         try {
-            WebElement button = wait.until(ExpectedConditions.elementToBeClickable(continueToTravelDatesButton));
-            button.click();
-            Thread.sleep(1500); // Wait for page transition
+            // Wait a bit for the button to appear after selecting continent
+            Thread.sleep(1500);
+            
+            // Find the button - it's the MUI button at the bottom
+            java.util.List<WebElement> buttons = driver.findElements(continueToTravelDatesButton);
+            System.out.println("Found " + buttons.size() + " buttons");
+            
+            // Click the last visible button (continue button is usually at the bottom)
+            WebElement continueButton = null;
+            for (WebElement btn : buttons) {
+                if (btn.isDisplayed() && btn.isEnabled()) {
+                    String buttonText = btn.getText();
+                    System.out.println("Button text: " + buttonText);
+                    // Look for button with text containing "הלאה" (continue)
+                    if (buttonText.contains("הלאה") || buttonText.length() > 10) {
+                        continueButton = btn;
+                        break;
+                    }
+                }
+            }
+            
+            if (continueButton != null) {
+                continueButton.click();
+                System.out.println("Clicked continue button");
+                
+                // Wait for URL to change to dates page
+                wait.until(ExpectedConditions.urlContains("/wizard/date"));
+                Thread.sleep(1000); // Extra wait for page elements to load
+                System.out.println("Successfully navigated to dates page");
+            } else {
+                throw new RuntimeException("Continue button not found");
+            }
         } catch (Exception e) {
             System.err.println("Error clicking continue button: " + e.getMessage());
+            e.printStackTrace();
             tryAlternativeClick(continueToTravelDatesButton);
         }
     }

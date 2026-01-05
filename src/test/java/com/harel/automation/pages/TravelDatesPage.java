@@ -18,12 +18,12 @@ public class TravelDatesPage {
     private WebDriver driver;
     private WebDriverWait wait;
     
-    // Locators
-    private By departureDateInput = By.xpath("//input[contains(@placeholder, 'יציאה') or contains(@name, 'departure') or contains(@id, 'departure')]");
-    private By returnDateInput = By.xpath("//input[contains(@placeholder, 'חזרה') or contains(@name, 'return') or contains(@id, 'return')]");
-    private By datePickerCalendar = By.xpath("//*[contains(@class, 'calendar') or contains(@class, 'datepicker') or contains(@class, 'picker')]");
-    private By totalDaysDisplay = By.xpath("//*[contains(text(), 'ימים') or contains(text(), 'days') or contains(text(), 'סה\"כ')]");
-    private By continueToPassengerDetailsButton = By.xpath("//*[contains(text(), 'הלאה לפרטי הנוסעים') or contains(text(), 'passenger')]");
+    // Locators - based on actual page structure
+    private By departureDateInput = By.id("travel_start_date");  // Input with id="travel_start_date", name="start"
+    private By returnDateInput = By.id("travel_end_date");       // Input with id="travel_end_date", name="end"
+    private By datePickerCalendar = By.xpath("//div[contains(@class, 'MuiPickersCalendar')]");
+    private By totalDaysDisplay = By.xpath("//*[contains(text(), 'ימים') or contains(text(), 'days') or contains(text(), 'סה\"כ') or contains(text(), 'משך')]");
+    private By continueToPassengerDetailsButton = By.xpath("//button[contains(@class, 'MuiButton')]");
     private By passengerDetailsSection = By.xpath("//*[contains(@class, 'passenger') or contains(text(), 'נוסעים') or contains(text(), 'Passenger')]");
     
     public TravelDatesPage(WebDriver driver, WebDriverWait wait) {
@@ -32,94 +32,57 @@ public class TravelDatesPage {
     }
     
     /**
-     * Select departure date using date picker
+     * Select departure date using direct input
      */
     public void selectDepartureDate(LocalDate date) {
         try {
-            // Click on departure date input to open date picker
-            WebElement departureDateField = wait.until(ExpectedConditions.elementToBeClickable(departureDateInput));
-            departureDateField.click();
-            Thread.sleep(1000);
+            // Wait for input field to be available
+            WebElement departureDateField = wait.until(ExpectedConditions.presenceOfElementLocated(departureDateInput));
             
-            // Select date from calendar
-            selectDateFromCalendar(date);
-            
-        } catch (Exception e) {
-            System.err.println("Error selecting departure date: " + e.getMessage());
-            // Try alternative method - direct input
-            tryDirectDateInput(departureDateInput, date);
-        }
-    }
-    
-    /**
-     * Select return date using date picker
-     */
-    public void selectReturnDate(LocalDate date) {
-        try {
-            // Click on return date input to open date picker
-            WebElement returnDateField = wait.until(ExpectedConditions.elementToBeClickable(returnDateInput));
-            returnDateField.click();
-            Thread.sleep(1000);
-            
-            // Select date from calendar
-            selectDateFromCalendar(date);
-            
-        } catch (Exception e) {
-            System.err.println("Error selecting return date: " + e.getMessage());
-            // Try alternative method - direct input
-            tryDirectDateInput(returnDateInput, date);
-        }
-    }
-    
-    /**
-     * Select a specific date from the calendar date picker
-     */
-    private void selectDateFromCalendar(LocalDate date) {
-        try {
-            // Wait for calendar to be visible
-            wait.until(ExpectedConditions.presenceOfElementLocated(datePickerCalendar));
-            
-            // Format the date to find in calendar (try multiple formats)
-            String dayOfMonth = String.valueOf(date.getDayOfMonth());
-            
-            // Find and click the date cell
-            By dateCell = By.xpath(String.format(
-                "//td[@data-day='%d' and @data-month='%d' and @data-year='%d'] | " +
-                "//div[contains(@class, 'day') and text()='%s'] | " +
-                "//button[contains(@aria-label, '%s')]",
-                date.getDayOfMonth(), date.getMonthValue() - 1, date.getYear(),
-                dayOfMonth, date.toString()
-            ));
-            
-            WebElement dateCellElement = wait.until(ExpectedConditions.elementToBeClickable(dateCell));
-            dateCellElement.click();
-            Thread.sleep(500);
-            
-        } catch (Exception e) {
-            System.err.println("Error selecting date from calendar: " + e.getMessage());
-            throw new RuntimeException("Failed to select date from calendar: " + date, e);
-        }
-    }
-    
-    /**
-     * Alternative method: Try direct input of date
-     */
-    private void tryDirectDateInput(By inputLocator, LocalDate date) {
-        try {
-            WebElement dateInput = driver.findElement(inputLocator);
-            dateInput.clear();
-            
-            // Try different date formats
+            // Format date as dd/mm/yyyy
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
             String formattedDate = date.format(formatter);
             
-            dateInput.sendKeys(formattedDate);
+            // Clear and enter the date
+            departureDateField.clear();
+            departureDateField.sendKeys(formattedDate);
             Thread.sleep(500);
             
+            System.out.println("Entered departure date: " + formattedDate);
+            
         } catch (Exception e) {
-            throw new RuntimeException("Failed to input date: " + date, e);
+            System.err.println("Error selecting departure date: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to select departure date: " + date, e);
         }
     }
+    
+    /**
+     * Select return date using direct input
+     */
+    public void selectReturnDate(LocalDate date) {
+        try {
+            // Wait for input field to be available
+            WebElement returnDateField = wait.until(ExpectedConditions.presenceOfElementLocated(returnDateInput));
+            
+            // Format date as dd/mm/yyyy
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String formattedDate = date.format(formatter);
+            
+            // Clear and enter the date
+            returnDateField.clear();
+            returnDateField.sendKeys(formattedDate);
+            Thread.sleep(500);
+            
+            System.out.println("Entered return date: " + formattedDate);
+            
+        } catch (Exception e) {
+            System.err.println("Error selecting return date: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to select return date: " + date, e);
+        }
+    }
+    
     
     /**
      * Get the displayed total days text
@@ -153,12 +116,40 @@ public class TravelDatesPage {
      */
     public void clickContinueToPassengerDetails() {
         try {
-            WebElement button = wait.until(ExpectedConditions.elementToBeClickable(continueToPassengerDetailsButton));
-            button.click();
-            Thread.sleep(2000); // Wait for page transition
+            Thread.sleep(1000); // Wait for button to be ready
+            
+            // Find all buttons and click the one with appropriate text
+            java.util.List<WebElement> buttons = driver.findElements(continueToPassengerDetailsButton);
+            System.out.println("Found " + buttons.size() + " buttons");
+            
+            WebElement continueButton = null;
+            for (WebElement btn : buttons) {
+                if (btn.isDisplayed() && btn.isEnabled()) {
+                    String btnText = btn.getText();
+                    if (btnText.contains("הלאה") || btnText.contains("המשך") || btnText.length() > 10) {
+                        continueButton = btn;
+                        System.out.println("Found continue button: " + btnText);
+                        break;
+                    }
+                }
+            }
+            
+            if (continueButton != null) {
+                continueButton.click();
+                Thread.sleep(2000); // Wait for page transition
+            } else {
+                // Try clicking the first enabled button
+                for (WebElement btn : buttons) {
+                    if (btn.isDisplayed() && btn.isEnabled()) {
+                        btn.click();
+                        Thread.sleep(2000);
+                        break;
+                    }
+                }
+            }
         } catch (Exception e) {
             System.err.println("Error clicking continue button: " + e.getMessage());
-            tryAlternativeClick(continueToPassengerDetailsButton);
+            e.printStackTrace();
         }
     }
     
@@ -178,17 +169,5 @@ public class TravelDatesPage {
         }
     }
     
-    /**
-     * Alternative click method using JavaScript executor
-     */
-    private void tryAlternativeClick(By locator) {
-        try {
-            WebElement element = driver.findElement(locator);
-            ((org.openqa.selenium.JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
-            Thread.sleep(1000);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to click element after multiple attempts: " + locator, e);
-        }
-    }
 }
 
