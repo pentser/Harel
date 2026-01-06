@@ -66,8 +66,8 @@ Harel/
 ├── .gitignore                        # Git ignore rules
 ├── Dockerfile                        # Docker container setup
 ├── docker-compose.yml                # Docker Compose configuration
-├── run-tests.bat                     # Windows test runner
-├── run-tests.sh                      # Linux/Mac test runner
+├──                                   # Windows test runner
+├──                                   # Linux/Mac test runner
 ├── README.md                         # Complete documentation
 └── PROJECT-SUMMARY.md                # This file
 
@@ -111,17 +111,6 @@ Total: 13 files, 1,136+ lines of code
 ---
 
 ## 🚀 How to Run
-
-### Quick Start (Windows)
-```batch
-run-tests.bat
-```
-
-### Quick Start (Linux/Mac)
-```bash
-chmod +x run-tests.sh
-./run-tests.sh
-```
 
 ### Maven Command
 ```bash
